@@ -43,6 +43,7 @@
             grid-template-areas:
                 "avatar copy talk"
                 "avatar reward reward"
+                "actions actions actions"
                 "chat chat chat";
             align-items: center;
             gap: 8px 12px;
@@ -54,12 +55,30 @@
             color: #f5d98f;
             box-shadow: 0 4px 0 #102a34;
         }
-        .pet-avatar {
+        .pet-avatar-wrap {
             grid-area: avatar;
+            position: relative;
+            width: 48px;
+            min-height: 48px;
+            display: grid;
+            place-items: center;
+        }
+        .pet-avatar {
             font-size: 2.35rem;
             line-height: 1;
+            cursor: pointer;
             filter: drop-shadow(0 4px 2px rgba(0,0,0,0.35));
             animation: petFloat 2.8s ease-in-out infinite;
+        }
+        .pet-avatar-wrap:hover .pet-avatar { transform: scale(1.08); }
+        .pet-outfit {
+            position: absolute;
+            right: -3px;
+            bottom: -2px;
+            font-size: 1.1rem;
+            line-height: 1;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 1px rgba(0,0,0,0.45));
         }
         .pet-avatar.pet-cheer {
             animation: petCheer 0.7s ease;
@@ -93,6 +112,28 @@
             line-height: 1.3;
             margin-top: 3px;
         }
+        .pet-actions {
+            grid-area: actions;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-left: 52px;
+        }
+        .pet-action,
+        .store-toggle {
+            border: 1px solid #3c718b;
+            border-radius: 18px;
+            padding: 7px 10px;
+            background: #1f4053;
+            color: #d5e8f5;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .pet-action:hover,
+        .store-toggle:hover { background: #315f73; transform: translateY(-1px); }
+        .store-toggle { background: #7a573a; color: #ffe3a3; }
         .pet-chat-row {
             display: flex;
             grid-area: chat;
@@ -149,6 +190,7 @@
                     "avatar copy"
                     "avatar talk"
                     "avatar reward"
+                    "actions actions"
                     "chat chat";
             }
             .pet-talk {
@@ -158,9 +200,60 @@
                 margin-left: 0;
                 text-align: left;
             }
+            .pet-actions,
             .pet-chat-row {
                 margin-left: 0;
             }
+        }
+        .shop-panel {
+            background: #0b1f2b;
+            border: 1px solid #4b7d96;
+            border-radius: 22px;
+            padding: 14px;
+            margin: -6px 0 18px;
+        }
+        .shop-panel[hidden] { display: none; }
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            color: #f5d98f;
+            margin-bottom: 10px;
+        }
+        .shop-header small { color: #6fcf97; font-weight: 700; }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .shop-card {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+            background: #183544;
+            border-radius: 16px;
+            padding: 9px;
+            border: 1px solid #2b5063;
+        }
+        .shop-icon { font-size: 1.7rem; line-height: 1; }
+        .shop-card strong { display: block; color: #f5d98f; font-size: 0.83rem; }
+        .shop-card small { display: block; color: #aac3d4; font-size: 0.68rem; margin: 2px 0 6px; }
+        .shop-card button {
+            border: none;
+            border-radius: 14px;
+            padding: 5px 8px;
+            background: #3a7a6b;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .shop-card button:hover { background: #4d9b88; }
+        .shop-card button:disabled { cursor: default; }
+        @media (max-width: 550px) {
+            .shop-grid { grid-template-columns: 1fr; }
         }
         .status-panel {
             display: grid;
@@ -246,18 +339,31 @@
 <div class="game-container" id="app">
     <h1>⚖️ Dignidade Ativa</h1>
     <div class="sub">🧠 Soluções reais: Sindicato • Denúncia • Organização</div>
-    <div class="pet-badge" aria-label="Pet de estimação: Onça IA">
-        <div class="pet-avatar" id="petAvatar" role="img" aria-label="Onça animada">🐆</div>
+    <div class="pet-badge" aria-label="Mascote virtual: Onça IA">
+                <div class="pet-avatar-wrap" id="petAvatarWrap" tabindex="0" role="button" aria-label="Interagir com a Onça">
+            <div class="pet-avatar" id="petAvatar" role="img" aria-label="Onça animada">🐆</div>
+            <span class="pet-outfit" id="petOutfit" aria-label="Roupa equipada"></span>
+        </div>
         <div class="pet-copy">
-            <div class="pet-name">Onça IA <span class="pet-status">● online</span></div>
-            <div class="pet-message" id="petMessage" aria-live="polite">Estou aqui para ajudar e encontrar dinheiro para você.</div>
+            <div class="pet-name"><span id="petName">Onça IA</span> <span class="pet-status">● online</span></div>
+            <div class="pet-message" id="petMessage" aria-live="polite">Estou aqui para ajudar, brincar e encontrar dinheiro para você.</div>
         </div>
         <button class="pet-talk" id="petTalkBtn" type="button">💬 Pedir ajuda</button>
         <div class="pet-reward" id="petReward" aria-live="polite">💰 +R$25 por dia</div>
+        <div class="pet-actions">
+            <button class="pet-action" id="petPetBtn" type="button">🤍 Fazer carinho</button>
+            <button class="pet-action" id="petPlayBtn" type="button">🎲 Brincar</button>
+            <button class="store-toggle" id="storeToggle" type="button">🛍️ Abrir loja</button>
+        </div>
         <div class="pet-chat-row">
-            <input class="pet-chat-input" id="petInput" type="text" maxlength="120" placeholder="Converse com a Onça IA..." aria-label="Mensagem para a Onça IA">
+            <input class="pet-chat-input" id="petInput" type="text" maxlength="120" placeholder="Converse com a Onça IA..." aria-label="Mensagem para o mascote">
             <button class="pet-send" id="petSendBtn" type="button">Enviar</button>
         </div>
+    </div>
+
+    <div class="shop-panel" id="shopPanel" hidden>
+        <div class="shop-header"><strong>🛍️ Loja da Selva</strong><small id="shopBalance">💰 R$200 disponíveis</small></div>
+        <div class="shop-grid" id="shopGrid"></div>
     </div>
 
     <div class="status-panel">
@@ -300,7 +406,11 @@
             hasDenuncia: false,    // Solução real 2
             hasOrganizacao: false, // Solução real 3
             petEarnedToday: false,
-            petTalks: 0
+            petTalks: 0,
+            activePet: 'pet-onca',
+            activeOutfit: 'outfit-none',
+            ownedPets: ['pet-onca'],
+            ownedOutfits: ['outfit-none']
         };
 
         // --- EVENTOS (com soluções embutidas) ---
@@ -342,6 +452,15 @@
             }
         ];
 
+        const SHOP_ITEMS = [
+            { id: 'outfit-crown', type: 'outfit', name: 'Coroa da Selva', icon: '👑', price: 80, description: 'Para uma realeza feroz.' },
+            { id: 'outfit-glasses', type: 'outfit', name: 'Óculos Radicais', icon: '🕶️', price: 60, description: 'Estilo para qualquer aventura.' },
+            { id: 'outfit-hat', type: 'outfit', name: 'Chapéu Elegante', icon: '🎩', price: 100, description: 'Charme e confiança.' },
+            { id: 'pet-fox', type: 'pet', name: 'Raposa', icon: '🦊', price: 120, description: 'Esperta e veloz.' },
+            { id: 'pet-panda', type: 'pet', name: 'Panda', icon: '🐼', price: 160, description: 'Calmo e carinhoso.' },
+            { id: 'pet-tiger', type: 'pet', name: 'Tigre', icon: '🐯', price: 220, description: 'Corajoso e forte.' }
+        ];
+
         // DOM refs
         const dayD = document.getElementById('dayDisplay');
         const moneyD = document.getElementById('moneyDisplay');
@@ -351,12 +470,21 @@
         const descD = document.getElementById('eventDesc');
         const hintD = document.getElementById('hintText');
         const logD = document.getElementById('logArea');
+        const petAvatarWrapD = document.getElementById('petAvatarWrap');
         const petAvatarD = document.getElementById('petAvatar');
+        const petOutfitD = document.getElementById('petOutfit');
+        const petNameD = document.getElementById('petName');
         const petMessageD = document.getElementById('petMessage');
         const petTalkBtn = document.getElementById('petTalkBtn');
         const petRewardD = document.getElementById('petReward');
         const petInputD = document.getElementById('petInput');
         const petSendBtn = document.getElementById('petSendBtn');
+        const petPetBtn = document.getElementById('petPetBtn');
+        const petPlayBtn = document.getElementById('petPlayBtn');
+        const storeToggle = document.getElementById('storeToggle');
+        const shopPanel = document.getElementById('shopPanel');
+        const shopGridD = document.getElementById('shopGrid');
+        const shopBalanceD = document.getElementById('shopBalance');
 
         const sindBtn = document.getElementById('sindBtn');
         const denBtn = document.getElementById('denBtn');
@@ -377,6 +505,121 @@
                 void petAvatarD.offsetWidth;
                 petAvatarD.classList.add('pet-cheer');
             }
+        }
+
+        function getShopItem(id) {
+            return SHOP_ITEMS.find(item => item.id === id);
+        }
+
+        function getActivePet() {
+            return S.activePet === 'pet-onca'
+                ? { id: 'pet-onca', name: 'Onça IA', icon: '🐆' }
+                : getShopItem(S.activePet) || { id: 'pet-onca', name: 'Onça IA', icon: '🐆' };
+        }
+
+        function getActiveOutfit() {
+            return S.activeOutfit === 'outfit-none'
+                ? { id: 'outfit-none', name: 'Sem roupa', icon: '' }
+                : getShopItem(S.activeOutfit) || { id: 'outfit-none', name: 'Sem roupa', icon: '' };
+        }
+
+        function savePetCollection() {
+            try {
+                localStorage.setItem('dignidadeAtivaPetCollection', JSON.stringify({
+                    activePet: S.activePet,
+                    activeOutfit: S.activeOutfit,
+                    ownedPets: S.ownedPets,
+                    ownedOutfits: S.ownedOutfits
+                }));
+            } catch (error) {
+                // O jogo continua funcionando mesmo sem armazenamento local.
+            }
+        }
+
+        function loadPetCollection() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('dignidadeAtivaPetCollection'));
+                if (!saved) return;
+                const validPets = ['pet-onca', ...SHOP_ITEMS.filter(item => item.type === 'pet').map(item => item.id)];
+                const validOutfits = ['outfit-none', ...SHOP_ITEMS.filter(item => item.type === 'outfit').map(item => item.id)];
+                if (validPets.includes(saved.activePet)) S.activePet = saved.activePet;
+                if (validOutfits.includes(saved.activeOutfit)) S.activeOutfit = saved.activeOutfit;
+                if (Array.isArray(saved.ownedPets)) S.ownedPets = ['pet-onca', ...saved.ownedPets.filter(id => validPets.includes(id))];
+                if (Array.isArray(saved.ownedOutfits)) S.ownedOutfits = ['outfit-none', ...saved.ownedOutfits.filter(id => validOutfits.includes(id))];
+            } catch (error) {
+                // Dados corrompidos não impedem uma nova coleção padrão.
+            }
+        }
+
+        function renderPet() {
+            const pet = getActivePet();
+            const outfit = getActiveOutfit();
+            petAvatarD.textContent = pet.icon;
+            petNameD.textContent = pet.name;
+            petAvatarD.setAttribute('aria-label', `${pet.name} animado`);
+            petAvatarWrapD.setAttribute('aria-label', `Interagir com ${pet.name}`);
+            petOutfitD.textContent = outfit.icon;
+            petOutfitD.setAttribute('aria-label', outfit.id === 'outfit-none' ? 'Sem roupa equipada' : `${outfit.name} equipada`);
+        }
+
+        function renderShop() {
+            shopBalanceD.textContent = `💰 R$${S.money} disponíveis`;
+            shopGridD.innerHTML = SHOP_ITEMS.map(item => {
+                const owned = item.type === 'pet' ? S.ownedPets.includes(item.id) : S.ownedOutfits.includes(item.id);
+                const active = item.type === 'pet' ? S.activePet === item.id : S.activeOutfit === item.id;
+                const label = active ? 'Equipado' : owned ? 'Equipar' : S.money >= item.price ? `Comprar R$${item.price}` : `Falta R$${item.price - S.money}`;
+                const disabled = active || (!owned && S.money < item.price) ? 'disabled' : '';
+                return `<article class="shop-card">
+                    <div class="shop-icon">${item.icon}</div>
+                    <div><strong>${item.type === 'pet' ? 'Mascote' : 'Roupa'} • ${item.name}</strong><small>${item.description}</small><button type="button" data-shop-id="${item.id}" ${disabled}>${label}</button></div>
+                </article>`;
+            }).join('');
+            shopGridD.querySelectorAll('[data-shop-id]').forEach(button => {
+                button.addEventListener('click', () => handleShopItem(button.dataset.shopId));
+            });
+        }
+
+        function handleShopItem(id) {
+            if (S.gameOver) return;
+            const item = getShopItem(id);
+            if (!item) return;
+            const ownedList = item.type === 'pet' ? S.ownedPets : S.ownedOutfits;
+            const alreadyOwned = ownedList.includes(item.id);
+
+            if (!alreadyOwned) {
+                if (S.money < item.price) {
+                    setPetMessage(`Ainda faltam R$${item.price - S.money} para comprar ${item.name}.`);
+                    return;
+                }
+                S.money -= item.price;
+                ownedList.push(item.id);
+                addLog(`🛍️ Você comprou ${item.name} por R$${item.price}.`);
+            }
+
+            if (item.type === 'pet') S.activePet = item.id;
+            else S.activeOutfit = item.id;
+            savePetCollection();
+            renderPet();
+            renderShop();
+            updateUI();
+            setPetMessage(`${item.name} está equipado! Vamos continuar a aventura.`, true);
+        }
+
+        function interactWithPet(kind) {
+            if (S.gameOver) return;
+            const pet = getActivePet();
+            const phrases = kind === 'pet'
+                ? [`${pet.name} adorou o carinho e ronronou feliz!`, `${pet.name} encostou em você. Que amizade!`]
+                : [`${pet.name} correu pela selva e voltou cheio de energia!`, `Brincadeira aceita! ${pet.name} está pronto para ajudar.`];
+            const phrase = phrases[S.petTalks % phrases.length];
+            S.petTalks++;
+            setPetMessage(phrase, true);
+        }
+
+        function toggleShop() {
+            shopPanel.hidden = !shopPanel.hidden;
+            storeToggle.textContent = shopPanel.hidden ? '🛍️ Abrir loja' : '✖️ Fechar loja';
+            if (!shopPanel.hidden) renderShop();
         }
 
         function rewardPet() {
@@ -447,6 +690,8 @@
             moneyD.textContent = `R$${S.money}`;
             healthD.textContent = `${S.health}%`;
             stressD.textContent = `${S.stress}%`;
+            shopBalanceD.textContent = `💰 R$${S.money} disponíveis`;
+            if (!shopPanel.hidden) renderShop();
             // Cores
             healthD.parentElement.className = 'stat ' + (S.health < 30 ? 'bad' : S.health < 60 ? 'warn' : 'good');
             stressD.parentElement.className = 'stat ' + (S.stress > 70 ? 'bad' : S.stress > 40 ? 'warn' : '');
@@ -484,6 +729,9 @@
             petTalkBtn.disabled = disabled;
             petInputD.disabled = disabled;
             petSendBtn.disabled = disabled;
+            petPetBtn.disabled = disabled;
+            petPlayBtn.disabled = disabled;
+            storeToggle.disabled = disabled;
         }
 
         // --- CARREGAR EVENTO ---
@@ -501,6 +749,9 @@
             petTalkBtn.disabled = false;
             petInputD.disabled = false;
             petSendBtn.disabled = false;
+            petPetBtn.disabled = false;
+            petPlayBtn.disabled = false;
+            storeToggle.disabled = false;
             setPetMessage(`Estou analisando: ${ev.hint.replace(/^Solução:\s*/i, '')}. Peça minha ajuda quando quiser.`);
             // Habilita botões de solução
             sindBtn.disabled = false;
@@ -639,6 +890,16 @@
         orgBtn.addEventListener('click', () => aplicarSolucao('organizacao'));
         petTalkBtn.addEventListener('click', petAIHelp);
         petSendBtn.addEventListener('click', petChat);
+        petPetBtn.addEventListener('click', () => interactWithPet('pet'));
+        petPlayBtn.addEventListener('click', () => interactWithPet('play'));
+        storeToggle.addEventListener('click', toggleShop);
+        petAvatarWrapD.addEventListener('click', () => interactWithPet('pet'));
+        petAvatarWrapD.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                interactWithPet('pet');
+            }
+        });
         petInputD.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') petChat();
         });
@@ -646,6 +907,9 @@
         resetBtn.addEventListener('click', resetGame);
 
         // INICIAR
+        loadPetCollection();
+        renderPet();
+        renderShop();
         resetGame();
     })();
 </script>
