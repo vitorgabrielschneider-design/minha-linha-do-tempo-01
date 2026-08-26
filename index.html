@@ -38,14 +38,129 @@
             margin-bottom: 20px;
         }
         .pet-badge {
-            width: fit-content;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-areas:
+                "avatar copy talk"
+                "avatar reward reward"
+                "chat chat chat";
+            align-items: center;
+            gap: 8px 12px;
+            width: 100%;
             margin: -8px auto 18px;
-            padding: 7px 16px;
-            border-radius: 30px;
+            padding: 10px 14px;
+            border-radius: 24px;
             background: #254b55;
             color: #f5d98f;
-            font-size: 0.95rem;
             box-shadow: 0 4px 0 #102a34;
+        }
+        .pet-avatar {
+            grid-area: avatar;
+            font-size: 2.35rem;
+            line-height: 1;
+            filter: drop-shadow(0 4px 2px rgba(0,0,0,0.35));
+            animation: petFloat 2.8s ease-in-out infinite;
+        }
+        .pet-avatar.pet-cheer {
+            animation: petCheer 0.7s ease;
+        }
+        @keyframes petFloat {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-5px) rotate(2deg); }
+        }
+        @keyframes petCheer {
+            0% { transform: scale(1) rotate(0); }
+            45% { transform: scale(1.3) rotate(-8deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+        .pet-copy {
+            grid-area: copy;
+            min-width: 0;
+            text-align: left;
+        }
+        .pet-name {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .pet-status {
+            color: #6fcf97;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+        .pet-message {
+            color: #d5e8f5;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            margin-top: 3px;
+        }
+        .pet-chat-row {
+            display: flex;
+            grid-area: chat;
+            gap: 6px;
+            margin-left: 52px;
+        }
+        .pet-chat-input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #4b7d96;
+            border-radius: 18px;
+            padding: 7px 10px;
+            background: #0b1c27;
+            color: #d5e8f5;
+            font-size: 0.78rem;
+            outline: none;
+        }
+        .pet-chat-input:focus { border-color: #f2c94a; }
+        .pet-chat-input::placeholder { color: #87adc4; }
+        .pet-send {
+            border: 1px solid #3c718b;
+            border-radius: 18px;
+            padding: 7px 11px;
+            background: #3d6b85;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .pet-send:hover { background: #538bab; }
+        .pet-talk {
+            grid-area: talk;
+            border: none;
+            border-radius: 30px;
+            padding: 9px 12px;
+            background: #f2c94a;
+            color: #25323a;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .pet-talk:hover { background: #ffe17a; transform: translateY(-2px); }
+        .pet-talk:active { transform: scale(0.96); }
+        .pet-reward {
+            grid-area: reward;
+            color: #6fcf97;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-align: right;
+        }
+        @media (max-width: 550px) {
+            .pet-badge {
+                grid-template-columns: auto minmax(0, 1fr);
+                grid-template-areas:
+                    "avatar copy"
+                    "avatar talk"
+                    "avatar reward"
+                    "chat chat";
+            }
+            .pet-talk {
+                justify-self: start;
+            }
+            .pet-reward {
+                margin-left: 0;
+                text-align: left;
+            }
+            .pet-chat-row {
+                margin-left: 0;
+            }
         }
         .status-panel {
             display: grid;
@@ -131,7 +246,19 @@
 <div class="game-container" id="app">
     <h1>⚖️ Dignidade Ativa</h1>
     <div class="sub">🧠 Soluções reais: Sindicato • Denúncia • Organização</div>
-    <div class="pet-badge" aria-label="Pet de estimação: Onça">🐆 Pet de estimação: <strong>Onça</strong></div>
+    <div class="pet-badge" aria-label="Pet de estimação: Onça IA">
+        <div class="pet-avatar" id="petAvatar" role="img" aria-label="Onça animada">🐆</div>
+        <div class="pet-copy">
+            <div class="pet-name">Onça IA <span class="pet-status">● online</span></div>
+            <div class="pet-message" id="petMessage" aria-live="polite">Estou aqui para ajudar e encontrar dinheiro para você.</div>
+        </div>
+        <button class="pet-talk" id="petTalkBtn" type="button">💬 Pedir ajuda</button>
+        <div class="pet-reward" id="petReward" aria-live="polite">💰 +R$25 por dia</div>
+        <div class="pet-chat-row">
+            <input class="pet-chat-input" id="petInput" type="text" maxlength="120" placeholder="Converse com a Onça IA..." aria-label="Mensagem para a Onça IA">
+            <button class="pet-send" id="petSendBtn" type="button">Enviar</button>
+        </div>
+    </div>
 
     <div class="status-panel">
         <div class="stat"><span id="dayDisplay">0</span><small>Dia</small></div>
@@ -171,7 +298,9 @@
             log: [],
             hasSindicato: false,   // Solução real 1
             hasDenuncia: false,    // Solução real 2
-            hasOrganizacao: false  // Solução real 3
+            hasOrganizacao: false, // Solução real 3
+            petEarnedToday: false,
+            petTalks: 0
         };
 
         // --- EVENTOS (com soluções embutidas) ---
@@ -222,6 +351,12 @@
         const descD = document.getElementById('eventDesc');
         const hintD = document.getElementById('hintText');
         const logD = document.getElementById('logArea');
+        const petAvatarD = document.getElementById('petAvatar');
+        const petMessageD = document.getElementById('petMessage');
+        const petTalkBtn = document.getElementById('petTalkBtn');
+        const petRewardD = document.getElementById('petReward');
+        const petInputD = document.getElementById('petInput');
+        const petSendBtn = document.getElementById('petSendBtn');
 
         const sindBtn = document.getElementById('sindBtn');
         const denBtn = document.getElementById('denBtn');
@@ -230,6 +365,76 @@
         const resetBtn = document.getElementById('resetBtn');
 
         function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+
+        function updatePetReward() {
+            petRewardD.textContent = S.petEarnedToday ? '✅ Bônus recebido hoje' : '💰 +R$25 por dia';
+        }
+
+        function setPetMessage(message, celebrate = false) {
+            petMessageD.textContent = message;
+            if (celebrate) {
+                petAvatarD.classList.remove('pet-cheer');
+                void petAvatarD.offsetWidth;
+                petAvatarD.classList.add('pet-cheer');
+            }
+        }
+
+        function rewardPet() {
+            if (S.petEarnedToday) return false;
+            S.money += 25;
+            S.petEarnedToday = true;
+            addLog(`🐆 Onça IA encontrou R$25 para ajudar no Dia ${S.day}.`);
+            updateUI();
+            updatePetReward();
+            return true;
+        }
+
+        function petAIHelp() {
+            if (S.gameOver) {
+                setPetMessage('A jornada terminou. Recomece e eu volto a ajudar você!');
+                return;
+            }
+
+            S.petTalks++;
+            const tip = S.currentEvent
+                ? S.currentEvent.hint.replace(/^Solução:\s*/i, '')
+                : 'avance o dia para eu analisar a próxima situação';
+            let message = `Analisei tudo: ${tip}`;
+
+            if (rewardPet()) {
+                message += ' Também encontrei R$25 para reforçar sua verba!';
+            } else {
+                message += ' O bônus de R$25 de hoje já foi entregue, mas continuo com você.';
+            }
+
+            setPetMessage(message, true);
+        }
+
+        function petChat() {
+            if (S.gameOver) return;
+            const question = petInputD.value.trim();
+            if (!question) {
+                setPetMessage('Pode falar comigo. Pergunte sobre dinheiro, saúde ou qual ação escolher.');
+                petInputD.focus();
+                return;
+            }
+
+            const text = question.toLowerCase();
+            let answer;
+            if (text.includes('dinheiro') || text.includes('grana') || text.includes('verba')) {
+                answer = 'Eu cuido da sua verba: use o bônus diário e evite aceitar situações abusivas sem reagir.';
+            } else if (text.includes('saúde') || text.includes('saude') || text.includes('estresse') || text.includes('stress')) {
+                answer = 'Para proteger sua saúde, escolha a solução que reduz o dano e diminui o estresse nesta situação.';
+            } else if (text.includes('sindicato') || text.includes('denúncia') || text.includes('denuncia') || text.includes('organizar')) {
+                answer = S.currentEvent ? `Minha leitura é: ${S.currentEvent.hint.replace(/^Solução:\s*/i, '')}.` : 'Avance o dia para eu analisar uma nova situação.';
+            } else {
+                answer = 'Entendi. Estou acompanhando você. Peça uma dica sobre dinheiro, saúde ou a melhor ação.';
+            }
+
+            if (rewardPet()) answer += ' Ah, e encontrei R$25 para ajudar hoje!';
+            setPetMessage(answer, true);
+            petInputD.value = '';
+        }
 
         function addLog(msg) {
             S.log.push(msg);
@@ -276,6 +481,9 @@
             denBtn.disabled = disabled;
             orgBtn.disabled = disabled;
             nextBtn.disabled = disabled;
+            petTalkBtn.disabled = disabled;
+            petInputD.disabled = disabled;
+            petSendBtn.disabled = disabled;
         }
 
         // --- CARREGAR EVENTO ---
@@ -290,6 +498,10 @@
             descD.textContent = ev.desc;
             hintD.textContent = `💡 ${ev.hint}`;
             nextBtn.disabled = true;
+            petTalkBtn.disabled = false;
+            petInputD.disabled = false;
+            petSendBtn.disabled = false;
+            setPetMessage(`Estou analisando: ${ev.hint.replace(/^Solução:\s*/i, '')}. Peça minha ajuda quando quiser.`);
             // Habilita botões de solução
             sindBtn.disabled = false;
             denBtn.disabled = false;
@@ -315,6 +527,7 @@
                 sindBtn.disabled = true;
                 denBtn.disabled = true;
                 orgBtn.disabled = true;
+                setPetMessage('Eu vi o que aconteceu. Na próxima situação, peça minha ajuda antes de decidir.');
             }
         }
 
@@ -370,6 +583,7 @@
             sindBtn.disabled = true;
             denBtn.disabled = true;
             orgBtn.disabled = true;
+            setPetMessage('Boa escolha! A ação coletiva ficou mais forte. Estou pronta para analisar o próximo dia.', true);
             checkGameOver();
         }
 
@@ -382,6 +596,8 @@
                 return;
             }
             S.day++;
+            S.petEarnedToday = false;
+            updatePetReward();
             // Pequena recuperação natural
             S.health = clamp(S.health + 2, 0, 100);
             S.stress = clamp(S.stress - 3, 0, 100);
@@ -403,9 +619,13 @@
             S.hasSindicato = false;
             S.hasDenuncia = false;
             S.hasOrganizacao = false;
+            S.petEarnedToday = false;
+            S.petTalks = 0;
             S.log = ['🔄 Nova jornada. Use as soluções coletivas!'];
             updateUI();
             logD.innerHTML = `<strong>📋 Histórico:</strong> ` + S.log.join(' • ');
+            setPetMessage('Estou aqui para ajudar e encontrar dinheiro para você.');
+            updatePetReward();
             disableAll(false);
             nextBtn.disabled = true;
             // Primeiro evento
@@ -417,6 +637,11 @@
         sindBtn.addEventListener('click', () => aplicarSolucao('sindicato'));
         denBtn.addEventListener('click', () => aplicarSolucao('denuncia'));
         orgBtn.addEventListener('click', () => aplicarSolucao('organizacao'));
+        petTalkBtn.addEventListener('click', petAIHelp);
+        petSendBtn.addEventListener('click', petChat);
+        petInputD.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') petChat();
+        });
         nextBtn.addEventListener('click', advanceDay);
         resetBtn.addEventListener('click', resetGame);
 
