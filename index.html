@@ -274,6 +274,99 @@
         .stat.bad span { color: #ff7b72; }
         .stat.warn span { color: #f2c94a; }
 
+        .timeline-panel {
+            background: #102b38;
+            border: 1px solid #3f6a80;
+            border-radius: 24px;
+            padding: 16px 16px 14px;
+            margin: 18px 0;
+        }
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .timeline-header strong { color: #f5d98f; font-size: 1rem; }
+        .timeline-header small { color: #aac3d4; font-size: 0.72rem; text-align: right; }
+        .timeline-track {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .timeline-track::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 8%;
+            right: 8%;
+            height: 3px;
+            background: #31576a;
+            border-radius: 3px;
+        }
+        .timeline-progress {
+            position: absolute;
+            top: 16px;
+            left: 8%;
+            height: 3px;
+            width: 0;
+            max-width: 84%;
+            background: #6fcf97;
+            border-radius: 3px;
+            transition: width 0.35s ease;
+        }
+        .timeline-item {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            background: transparent;
+            color: #aac3d4;
+            cursor: pointer;
+            padding: 0 2px;
+            text-align: center;
+        }
+        .timeline-dot {
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 3px solid #31576a;
+            border-radius: 50%;
+            background: #0b1c27;
+            color: #87adc4;
+            font-size: 0.78rem;
+            transition: 0.25s ease;
+        }
+        .timeline-item strong { color: #d5e8f5; font-size: 0.72rem; line-height: 1.15; }
+        .timeline-item small { color: #87adc4; font-size: 0.64rem; line-height: 1.2; }
+        .timeline-item:hover .timeline-dot { transform: translateY(-2px); border-color: #f2c94a; }
+        .timeline-item.completed .timeline-dot { background: #3a7a6b; border-color: #6fcf97; color: white; }
+        .timeline-item.current .timeline-dot { background: #f2c94a; border-color: #ffe17a; color: #25323a; box-shadow: 0 0 0 5px rgba(242,201,74,0.15); }
+        .timeline-item.current strong { color: #f5d98f; }
+        .timeline-note {
+            min-height: 30px;
+            margin-top: 12px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: #0b1c27;
+            color: #b3ddf5;
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+        @media (max-width: 550px) {
+            .timeline-panel { padding: 14px 10px 12px; }
+            .timeline-header { align-items: flex-start; }
+            .timeline-header small { max-width: 46%; }
+            .timeline-item strong { font-size: 0.65rem; }
+            .timeline-item small { font-size: 0.58rem; }
+        }
+
         .event-box {
             background: #0b1c27;
             border-radius: 24px;
@@ -372,6 +465,17 @@
         <div class="stat good"><span id="healthDisplay">100%</span><small>❤️ Saúde</small></div>
         <div class="stat"><span id="stressDisplay">0%</span><small>⚠️ Estresse</small></div>
     </div>
+
+    <section class="timeline-panel" aria-labelledby="timelineTitle">
+        <div class="timeline-header">
+            <strong id="timelineTitle">🗺️ Linha do tempo da jornada</strong>
+            <small id="timelineProgressText">0 de 30 dias concluídos</small>
+        </div>
+        <div class="timeline-track" id="timelineTrack" role="list" aria-label="Marcos da jornada">
+            <div class="timeline-progress" id="timelineProgress" aria-hidden="true"></div>
+        </div>
+        <div class="timeline-note" id="timelineNote" aria-live="polite">Clique em um marco para conhecer o próximo passo.</div>
+    </section>
 
     <div class="event-box">
         <h4 id="eventTitle">📌 Situação</h4>
@@ -485,6 +589,10 @@
         const shopPanel = document.getElementById('shopPanel');
         const shopGridD = document.getElementById('shopGrid');
         const shopBalanceD = document.getElementById('shopBalance');
+        const timelineTrackD = document.getElementById('timelineTrack');
+        const timelineProgressD = document.getElementById('timelineProgress');
+        const timelineProgressTextD = document.getElementById('timelineProgressText');
+        const timelineNoteD = document.getElementById('timelineNote');
 
         const sindBtn = document.getElementById('sindBtn');
         const denBtn = document.getElementById('denBtn');
@@ -685,12 +793,43 @@
             logD.innerHTML = `<strong>📋 Histórico:</strong> ` + S.log.join(' • ');
         }
 
+        const TIMELINE_MILESTONES = [
+            { day: 1, icon: '🌱', title: 'Começo', detail: 'A primeira situação de trabalho aparece. Observe seus direitos.' },
+            { day: 7, icon: '🤝', title: 'União', detail: 'A organização coletiva ganha força quando ninguém luta sozinho.' },
+            { day: 15, icon: '📢', title: 'Voz ativa', detail: 'Denunciar e buscar orientação transforma indignação em ação.' },
+            { day: 22, icon: '🛡️', title: 'Resistência', detail: 'Suas escolhas protegem saúde, dinheiro e dignidade.' },
+            { day: 30, icon: '🏆', title: 'Conquista', detail: 'Chegue ao Dia 30 para vencer a precarização com consciência.' }
+        ];
+
+        function renderTimeline() {
+            const completedDays = clamp(S.day, 0, 30);
+            timelineProgressTextD.textContent = `${completedDays} de 30 dias concluídos`;
+            timelineProgressD.style.width = `${(completedDays / 30) * 84}%`;
+            timelineTrackD.querySelectorAll('.timeline-item').forEach(item => item.remove());
+            TIMELINE_MILESTONES.forEach(milestone => {
+                const completed = S.day >= milestone.day;
+                const current = !completed && S.day < milestone.day && (!TIMELINE_MILESTONES.some(other => other.day > S.day && other.day < milestone.day));
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = `timeline-item${completed ? ' completed' : ''}${current ? ' current' : ''}`;
+                item.setAttribute('role', 'listitem');
+                item.setAttribute('aria-label', `Dia ${milestone.day}: ${milestone.title}`);
+                item.innerHTML = `<span class="timeline-dot">${completed ? '✓' : milestone.icon}</span><strong>Dia ${milestone.day}</strong><small>${milestone.title}</small>`;
+                item.addEventListener('click', () => {
+                    timelineNoteD.textContent = `Dia ${milestone.day} • ${milestone.title}: ${milestone.detail}`;
+                    setPetMessage(milestone.detail);
+                });
+                timelineTrackD.appendChild(item);
+            });
+        }
+
         function updateUI() {
             dayD.textContent = S.day;
             moneyD.textContent = `R$${S.money}`;
             healthD.textContent = `${S.health}%`;
             stressD.textContent = `${S.stress}%`;
             shopBalanceD.textContent = `💰 R$${S.money} disponíveis`;
+            renderTimeline();
             if (!shopPanel.hidden) renderShop();
             // Cores
             healthD.parentElement.className = 'stat ' + (S.health < 30 ? 'bad' : S.health < 60 ? 'warn' : 'good');
